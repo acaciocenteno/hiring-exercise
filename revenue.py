@@ -25,11 +25,15 @@ def parse_line_to_object(line):
             real_components.append(component)
     components = real_components
 
-    date   = components[0]
-    sku    = int(components[1])
-    volume = int(components[2])
-    price  = int(components[3])
-    return SellingTransaction(date, sku, volume, price)
+    try:
+        date   = components[0]
+        sku    = int(components[1])
+        volume = int(components[2])
+        price  = int(components[3])
+        return SellingTransaction(date, sku, volume, price)
+
+    except:
+        return None
 
 def calculate_totals(path,
                      start,
@@ -44,28 +48,29 @@ def calculate_totals(path,
         input_file = open(path, 'r')
         for line in input_file.readlines():
             trn = parse_line_to_object(line)
-            trn_date = datetime.strptime(trn.date, DATE_FORMAT).date()
-            if start <= trn_date <= end:
-                if trn.sku not in summary:
-                    summary[trn.sku] = trn.revenue() / 100.
-                else:
-                    summary[trn.sku] += trn.revenue() / 100.
+            if trn != None:
+                trn_date = datetime.strptime(trn.date, DATE_FORMAT).date()
+                if start <= trn_date <= end:
+                    if trn.sku not in summary:
+                        summary[trn.sku] = trn.revenue() / 100.
+                    else:
+                        summary[trn.sku] += trn.revenue() / 100.
 
         top_ten = []
 
         for sku in summary:
             revenue = summary[sku]
-            if len(top_ten) < 10:
-                top_ten = top_ten + [(sku, revenue)]
-            else:
-                i=0
-                for i in range(9, -1, -1):  # xrange(9, -1, -1)
-                    if revenue <= top_ten[i][1]:
-                        break
-                if i>=0 and i < 9:
-                    top_ten = top_ten[:i] + [(sku, revenue)] + top_ten[i+1:]
-                # top_ten = top_ten[0:10]
+            i=0
+            while i<len(top_ten):  # for i in range(len(top_ten)):
+                elm = top_ten[i]
+                if elm[1] < revenue:
+                    break
+                i += 1 # ++i
 
+            if i < 10:
+                top_ten.insert(i, (sku, revenue))
+
+            top_ten = top_ten[0:10]
     except IOError as e:
         print(f'Could not read path [{path}]: {e}')
         sys.exit(1)
